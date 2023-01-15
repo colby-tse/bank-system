@@ -78,6 +78,14 @@ public class Bank {
 	}
 
 	/**
+	 * Sets the list of accounts registered with the bank.
+	 * @param accounts An ArrayList containing the list of accounts registered with the bank.
+	 */
+	public void setAccounts(ArrayList<Account> accounts) {
+		this.accounts = accounts;
+	}
+
+	/**
 	 * Gets the account with the given ID.
 	 * @param id A String containing the ID of an account.
 	 * @return An Account with the given ID.
@@ -118,9 +126,6 @@ public class Bank {
 	public void processCommand(String command) throws Exception {
 		clearTerminal();
 		switch (command.toUpperCase()) {
-			case "EXIT":
-				saveAccountData("accounts.csv");
-				System.exit(0);
 			case "HELP":
 				this.setSysMsg(COMMANDS);
 				break;
@@ -145,6 +150,12 @@ public class Bank {
 			case "TRANSFER":
 				this.transfer();
 				break;
+			case "EXIT":
+				saveAccountData("accounts.csv");
+				System.exit(0);
+			case "RESET":
+				this.reset();
+				break;
 			default:
 				this.setSysMsg("Please enter a valid command.");
 				break;
@@ -155,40 +166,46 @@ public class Bank {
 	 * Prompts the user to login using a valid ID and password.
 	 */
 	public void login() throws Exception {
+		// Check if logged in
+		if (this.getCurrentSession() != null) {
+			this.setSysMsg("Already logged in.");
+			return;
+		}
+
 		// Create the console object
-        Console console = System.console();
-        if (console == null) {
-            System.out.println("No console available.");
-            System.exit(0);
-        }
-  
-        // Get ID and password
-        String id = console.readLine("Enter ID: ");
-        if (id.equals("")) {
-        	this.setSysMsg("Login cancelled.");
-        	return;
-        }
-        char[] ch = console.readPassword("Enter password: ");
-        String pw = String.valueOf(ch);
-        if (pw.equals("")) {
-        	this.setSysMsg("Login cancelled.");
-        	return;
-        }
-
-        // Search account database to find matching account
-        for (Account account : this.getAccounts()) {
-        	if (account.getID().equals(id) && account.getDecryptedPw().equals(pw)) {
-        		this.setCurrentSession(account);
-        		break;
-        	}
-        }
-
-        // Update system message
-        if (this.getCurrentSession() == null) {
-        	this.setSysMsg("Login failed.");
-        } else {
-        	this.setSysMsg("Login successful.");
-        }
+		Console console = System.console();
+		if (console == null) {
+			System.out.println("No console available.");
+			System.exit(0);
+		}
+		
+		// Get ID and password
+		String id = console.readLine("Enter ID: ");
+		if (id.equals("")) {
+			this.setSysMsg("Login cancelled.");
+			return;
+		}
+		char[] ch = console.readPassword("Enter password: ");
+		String pw = String.valueOf(ch);
+		if (pw.equals("")) {
+			this.setSysMsg("Login cancelled.");
+			return;
+		}
+		
+		// Search account database to find matching account
+		for (Account account : this.getAccounts()) {
+			if (account.getID().equals(id) && account.getDecryptedPw().equals(pw)) {
+				this.setCurrentSession(account);
+				break;
+			}
+		}
+		
+		// Update system message
+		if (this.getCurrentSession() == null) {
+			this.setSysMsg("Login failed.");
+		} else {
+			this.setSysMsg("Login successful.");
+		}
 	}
 
 	/**
@@ -196,11 +213,11 @@ public class Bank {
 	 */
 	public void register() throws Exception {
 		// Create the console object
-        Console console = System.console();
-        if (console == null) {
-            System.out.println("No console available.");
-            System.exit(0);
-        }
+		Console console = System.console();
+		if (console == null) {
+			System.out.println("No console available.");
+			System.exit(0);
+		}
   
         // Get ID and check if valid
         String id = console.readLine("Enter a unique ID: ");
@@ -343,8 +360,8 @@ public class Bank {
 		}
 
 		// Create the console object
-        Console console = System.console();
-        if (console == null) {
+		Console console = System.console();
+		if (console == null) {
             System.out.println("No console available.");
             return;
         }
@@ -392,7 +409,10 @@ public class Bank {
 	 */
 	public void reset() throws Exception {
 		// Check if admin account
-		if (!this.getCurrentSession().getID().equals("admin")) {
+		if (this.getCurrentSession() == null) {
+			setSysMsg("Only admin can perform a reset.");
+			return;
+		} else if (!this.getCurrentSession().getID().equals("admin")) {
 			setSysMsg("Only admin can perform a reset.");
 			return;
 		}
@@ -419,15 +439,16 @@ public class Bank {
         	return;
         }
 
-        // Remove all accounts, except for the admin account
-        for (Account account : this.getAccounts()) {
-        	if (!account.getID().equals("admin")) {
-        		this.getAccounts().remove(account);
-        	}
-        }
+	// Assign new ArrayList of accounts containing admin account
+	ArrayList<Account> resetted = new ArrayList<Account>();
+	resetted.add(this.getCurrentSession());
+	this.setAccounts(resetted);
 
         // Save changes to file
         this.saveAccountData("accounts.csv");
+
+	// Update system message with success message
+	this.setSysMsg("Reset successful.");
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
